@@ -1,104 +1,127 @@
-const express = require('express');
-const fs = require('fs');
-const onHeaders = require('on-headers');
+<!DOCTYPE html>
+<html lang="en">
 
-var app = express();
+<head>
+  <meta charset="UTF-8">
+  <title></title>
+</head>
 
-// logger
-app.use((req, res, next) => {
-    console.log('Request:');
-    console.log(req.method, req.originalUrl, req.get('host'));
-    console.log(req.headers);
-    console.log();
-    onHeaders(res, x => {
-        console.log('Response:');
-        console.log(res.statusCode);
-        console.log(res._headers);
-        console.log();
+<body>
+  <section id="no-ACAO">
+    <h1>Fails if Access-Control-Allow-Origin Not Set</h1>
+    <button>Click to Send XHR</button>
+  </section>
+
+  <section id="wildcard-ACAO">
+    <h1>Success if Access-Control-Allow-Origin Set to Wildcard</h1>
+    <button>Click to Send XHR</button>
+  </section>
+
+  <section id="non-simple-request">
+    <h1>Non-Simple Request</h1>
+    <button>Click to Send XHR</button>
+  </section>
+
+  <section id="wildcard-ACAO-with-credentials">
+    <h1>Fails to Send Cookie when Access-Control-Allow-Origin set to Wildcard</h1>
+    <button>Click to Send XHR</button>
+  </section>
+  <section id="no-ACAC-with-credentials">
+    <h1>Fails when Access-Control-Allow-Credentials Not Set</h1>
+    <button>Click to send XHR</button>
+  </section>
+
+  <section id="specific-ACAO-with-credentials">
+    <h1>Success to Send Cookie when Access-Control-Allow-Origin set specificly</h1>
+    <button>Click to Send XHR</button>
+  </section>
+
+  <section id="redirect-simple-req">
+    <h1>Redirect Simple Request </h1>
+    <button>Click to Send XHR</button>
+  </section>
+
+  <section id="redirect-non-simple-req">
+    <h1>Redirect Non-Simple Request </h1>
+    <button>Click to Send XHR</button>
+  </section>
+
+  <section id="redirect-simple-req-twice">
+    <h1>Redirect Simple Request Twice</h1>
+    <button>Click to Send XHR</button>
+  </section>
+
+  <script>
+    click('#non-simple-request', function() {
+      var xhr = createXHR('http://mid.com:4001/access-control-allow-origin-wildcard');
+      xhr.setRequestHeader('x-foo', 'bar');
+      xhr.send();
     });
-    next();
-});
 
-app.get('/', (req, res) => {
-    fs.readFile('index.html', (err, content) => {
-        res.status(200).end(content);
+    click('#redirect-simple-req-twice', function() {
+      var xhr = createXHR('http://mid.com:4001/redirect-to-redirect');
+      xhr.send();
     });
-});
 
-app.get('/access-control-allow-origin-not-set', (req, res) => {
-    res.status(200).end('you can never retrieve this');
-});
-
-app.get('/access-control-allow-origin-wildcard', (req, res) => {
-    res.set({
-        'Access-Control-Allow-Origin': '*'
+    click('#redirect-non-simple-req', function() {
+      var xhr = createXHR('http://mid.com:4001/redirect');
+      xhr.setRequestHeader('x-foo', 'bar');
+      xhr.send();
     });
-    res.status(200).end('contents here');
-});
 
-app.options('/access-control-allow-origin-wildcard', (req, res) => {
-    res.set({
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': req.get('access-control-request-headers')
+    click('#redirect-simple-req button', function() {
+      var xhr = createXHR('http://mid.com:4001/redirect');
+      xhr.send();
     });
-    res.status(200).end();
-});
 
-app.get('/wildcard-allow-origin-with-credentials', (req, res) => {
-    res.set({
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Credentials': true
+    click('#no-ACAO button', function() {
+      var xhr = createXHR('http://dest.com:4001/access-control-allow-origin-not-set');
+      xhr.send();
     });
-    res.status(200).end('you can never retrieve this');
-});
 
-app.get('/allow-credentials-not-set', (req, res) => {
-    res.set({
-        'Access-Control-Allow-Origin': '*' //req.get('origin')
+    click('#wildcard-ACAO button', function() {
+      var xhr = createXHR('http://dest.com:4001/access-control-allow-origin-wildcard');
+      xhr.send();
     });
-    res.status(200).end('you can never retrieve this');
-});
 
-app.get('/specific-allow-origin-with-credentials', (req, res) => {
-    res.set({
-        'Access-Control-Allow-Origin': 'http://index.com:4001',
-        'Access-Control-Allow-Credentials': true
+    click('#wildcard-ACAO-with-credentials button', function() {
+      document.cookie = 'author=harttle';
+      var xhr = createXHR('http://dest.com:4001/wildcard-allow-origin-with-credentials');
+      xhr.withCredentials = true;
+      xhr.send();
     });
-    res.status(200).end('I got your cookie: ' + req.headers.cookie);
-});
 
-app.get('/redirect-to-redirect', (req, res) => {
-    res.set({
-        'Access-Control-Allow-Origin': 'http://index.com:4001',
-        'Location': 'http://index.com:4001/redirect'
+    click('#no-ACAC-with-credentials button', function() {
+      document.cookie = 'author=harttle';
+      var xhr = createXHR('http://dest.com:4001/allow-credentials-not-set');
+      xhr.withCredentials = true;
+      xhr.send();
     });
-    res.status(303).end(); 
-});
 
-app.get('/redirect', (req, res) => {
-    res.set({
-        'Access-Control-Allow-Origin': '*',
-        'Location': 'http://index.com:4001/access-control-allow-origin-wildcard',
-        'Access-Control-Allow-Headers': 'x-foo, DNT'
+    click('#specific-ACAO-with-credentials button', function() {
+      document.cookie = 'author=harttle';
+      var xhr = createXHR('http://dest.com:4001/specific-allow-origin-with-credentials');
+      xhr.withCredentials = true;
+      xhr.send();
     });
-    res.status(303).end(); 
-});
 
-app.options('/redirect', (req, res) => {
-    res.set({
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'x-foo, DNT'
-    });
-    res.status(200).end();
-});
 
-app.listen(4001, () => console.log('listening to 4001'));
+    function click(sel, func) {
+      var el = document.querySelector(sel);
+      el.addEventListener('click', func);
+    }
 
-console.log('Put these into your /etc/hosts:');
-console.log();
-console.log('127.0.0.1 index.com');
-console.log('127.0.0.1 mid.com');
-console.log('127.0.0.1 dest.com');
-console.log();
-console.log('Open http://index.com');
-console.log();
+    function createXHR(url) {
+      var xhr = new XMLHttpRequest();
+      xhr.open('GET', url);
+      xhr.onreadystatechange = function() {
+        if (xhr.readyState != 4) return;
+        var msg = 'status:' + xhr.status + ' body:' + xhr.responseText;
+        console.log(msg);
+      };
+      return xhr;
+    }
+  </script>
+</body>
+
+</html>
